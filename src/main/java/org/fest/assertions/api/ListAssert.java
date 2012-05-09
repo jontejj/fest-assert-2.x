@@ -1,15 +1,15 @@
 /*
  * Created on Oct 26, 2010
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
- * 
+ *
  * Copyright @2010-2011 the original author or authors.
  */
 package org.fest.assertions.api;
@@ -28,12 +28,12 @@ import org.fest.util.VisibleForTesting;
  * <p>
  * To create an instance of this class, invoke <code>{@link Assertions#assertThat(List)}</code>.
  * </p>
- * 
+ *
  * @author Yvonne Wang
  * @author Alex Ruiz
  * @author Joel Costigliola
  */
-// TODO inherits from IterableAssert and remove AbstractIterableAssert ? 
+// TODO inherits from IterableAssert and remove AbstractIterableAssert ?
 public class ListAssert extends AbstractIterableAssert<ListAssert, List<?>> implements IndexedObjectEnumerableAssert {
 
   @VisibleForTesting
@@ -67,9 +67,9 @@ public class ListAssert extends AbstractIterableAssert<ListAssert, List<?>> impl
    * </ul>
    * Empty lists are considered sorted.</br> Unique element lists are considered sorted unless the element type is not
    * Comparable.
-   * 
+   *
    * @return {@code this} assertion object.
-   * 
+   *
    * @throws AssertionError if the actual list is not sorted into ascending order according to the natural ordering of
    *           its elements.
    * @throws AssertionError if the actual list is <code>null</code>.
@@ -77,18 +77,18 @@ public class ListAssert extends AbstractIterableAssert<ListAssert, List<?>> impl
    * @throws AssertionError if the actual list elements are not mutually {@link Comparable}.
    */
   public ListAssert isSorted() {
-    lists.assertIsSorted(info, actual); 
+    lists.assertIsSorted(info, actual);
     return this;
   }
 
   /**
    * Verifies that the actual list is sorted according to the given comparator.</br> Empty lists are considered sorted
    * whatever the comparator is.</br> One element lists are considered sorted if element is compatible with comparator.
-   * 
+   *
    * @param comparator the {@link Comparator} used to compare list elements
-   * 
+   *
    * @return {@code this} assertion object.
-   * 
+   *
    * @throws AssertionError if the actual list is not sorted according to the given comparator.
    * @throws AssertionError if the actual list is <code>null</code>.
    * @throws NullPointerException if the given comparator is <code>null</code>.
@@ -105,11 +105,16 @@ public class ListAssert extends AbstractIterableAssert<ListAssert, List<?>> impl
     this.lists = new Lists(new ComparatorBasedComparisonStrategy(customComparator));
     return myself;
   }
-  
+
   @Override
   public ListAssert usingDefaultComparator() {
     super.usingDefaultComparator();
     this.lists = Lists.instance();
     return myself;
+  }
+
+  public ListAssert isUnmodifiableList(){
+    lists.assertUnmodifiableList(actual);
+    return this;
   }
 }

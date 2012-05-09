@@ -1,30 +1,37 @@
 /*
  * Created on Nov 19, 2010
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
- * 
+ *
  * Copyright @2010-2011 the original author or authors.
  */
 package org.fest.assertions.internal;
 
-import static org.fest.assertions.error.ShouldBeSorted.*;
+import static org.fest.assertions.error.ShouldBeSorted.shouldBeSorted;
+import static org.fest.assertions.error.ShouldBeSorted.shouldBeSortedAccordingToGivenComparator;
+import static org.fest.assertions.error.ShouldBeSorted.shouldHaveComparableElementsAccordingToGivenComparator;
+import static org.fest.assertions.error.ShouldBeSorted.shouldHaveMutuallyComparableElements;
 import static org.fest.assertions.error.ShouldContainAtIndex.shouldContainAtIndex;
 import static org.fest.assertions.error.ShouldNotContainAtIndex.shouldNotContainAtIndex;
 import static org.fest.assertions.internal.CommonValidations.checkIndexValueIsValid;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 
 import org.fest.assertions.core.AssertionInfo;
 import org.fest.assertions.data.Index;
+import org.fest.util.Collections;
 import org.fest.util.ComparatorBasedComparisonStrategy;
 import org.fest.util.ComparisonStrategy;
 import org.fest.util.StandardComparisonStrategy;
@@ -44,6 +51,7 @@ public class Lists {
 
   /**
    * Returns the singleton instance of this class.
+   * 
    * @return the singleton instance of this class.
    */
   public static Lists instance() {
@@ -74,6 +82,7 @@ public class Lists {
 
   /**
    * Verifies that the given {@code List} contains the given object at the given index.
+   * 
    * @param info contains information about the assertion.
    * @param actual the given {@code List}.
    * @param value the object to look for.
@@ -89,13 +98,14 @@ public class Lists {
     Iterables.instance().assertNotEmpty(info, actual);
     checkIndexValueIsValid(index, actual.size() - 1);
     Object actualElement = actual.get(index.value);
-    if (areEqual(actualElement, value)) return;
-    throw failures.failure(info,
-        shouldContainAtIndex(actual, value, index, actual.get(index.value), comparisonStrategy));
+    if (areEqual(actualElement, value))
+      return;
+    throw failures.failure(info, shouldContainAtIndex(actual, value, index, actual.get(index.value), comparisonStrategy));
   }
 
   /**
    * Verifies that the given {@code List} does not contain the given object at the given index.
+   * 
    * @param info contains information about the assertion.
    * @param actual the given {@code List}.
    * @param value the object to look for.
@@ -108,9 +118,11 @@ public class Lists {
     assertNotNull(info, actual);
     checkIndexValueIsValid(index, Integer.MAX_VALUE);
     int indexValue = index.value;
-    if (indexValue >= actual.size()) return;
+    if (indexValue >= actual.size())
+      return;
     Object actualElement = actual.get(index.value);
-    if (!areEqual(actualElement, value)) return;
+    if (!areEqual(actualElement, value))
+      return;
     throw failures.failure(info, shouldNotContainAtIndex(actual, value, index, comparisonStrategy));
   }
 
@@ -139,23 +151,28 @@ public class Lists {
   public void assertIsSorted(AssertionInfo info, List<?> actual) {
     assertNotNull(info, actual);
     if (comparisonStrategy instanceof ComparatorBasedComparisonStrategy) {
-      // instead of comparing elements with their natural comparator, use the one set by client.
+      // instead of comparing elements with their natural comparator, use the
+      // one set by client.
       Comparator<?> comparator = ((ComparatorBasedComparisonStrategy)comparisonStrategy).getComparator();
       assertIsSortedAccordingToComparator(info, actual, comparator);
       return;
     }
     try {
-      // sorted assertion is only relevant if elements are Comparable, we assume they are
+      // sorted assertion is only relevant if elements are Comparable, we assume
+      // they are
       List<Comparable<Object>> comparableList = listOfComparableElements(actual);
       // array with 0 or 1 element are considered sorted.
-      if (comparableList.size() <= 1) return;
+      if (comparableList.size() <= 1)
+        return;
       for (int i = 0; i < comparableList.size() - 1; i++) {
-        // array is sorted in ascending order iif element i is less or equal than element i+1
+        // array is sorted in ascending order iif element i is less or equal
+        // than element i+1
         if (comparableList.get(i).compareTo(comparableList.get(i + 1)) > 0)
           throw failures.failure(info, shouldBeSorted(i, actual));
       }
     } catch (ClassCastException e) {
-      // elements are either not Comparable or not mutually Comparable (e.g. List<Object> containing String and Integer)
+      // elements are either not Comparable or not mutually Comparable (e.g.
+      // List<Object> containing String and Integer)
       throw failures.failure(info, shouldHaveMutuallyComparableElements(actual));
     }
   }
@@ -174,23 +191,28 @@ public class Lists {
    * @throws AssertionError if the actual list elements are not mutually comparabe according to given Comparator.
    */
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  public void assertIsSortedAccordingToComparator(AssertionInfo info, List<?> actual,
-      Comparator<? extends Object> comparator) {
+  public void assertIsSortedAccordingToComparator(AssertionInfo info, List<?> actual, Comparator<? extends Object> comparator) {
     assertNotNull(info, actual);
-    if (comparator == null) throw new NullPointerException("The given comparator should not be null");
+    if (comparator == null)
+      throw new NullPointerException("The given comparator should not be null");
     try {
-      // Empty collections are considered sorted even if comparator can't be applied to their element type
+      // Empty collections are considered sorted even if comparator can't be
+      // applied to their element type
       // We can't verify that point because of erasure type at runtime.
-      if (actual.size() == 0) return;
+      if (actual.size() == 0)
+        return;
       Comparator rawComparator = comparator;
       if (actual.size() == 1) {
-        // Compare unique element with itself to verify thta it is compatible with comparator (a ClassCastException is
-        // thrown if not). We have to use a raw comparator to compare the unique element of actual ... :(
+        // Compare unique element with itself to verify thta it is compatible
+        // with comparator (a ClassCastException is
+        // thrown if not). We have to use a raw comparator to compare the unique
+        // element of actual ... :(
         rawComparator.compare(actual.get(0), actual.get(0));
         return;
       }
       for (int i = 0; i < actual.size() - 1; i++) {
-        // List is sorted in comparator defined order iif current element is less or equal than next element
+        // List is sorted in comparator defined order iif current element is
+        // less or equal than next element
         if (rawComparator.compare(actual.get(i), actual.get(i + 1)) > 0)
           throw failures.failure(info, shouldBeSortedAccordingToGivenComparator(i, actual, comparator));
       }
@@ -203,7 +225,7 @@ public class Lists {
   private static List<Comparable<Object>> listOfComparableElements(List<?> collection) {
     List<Comparable<Object>> listOfComparableElements = new ArrayList<Comparable<Object>>();
     for (Object object : collection) {
-      listOfComparableElements.add((Comparable<Object>) object);
+      listOfComparableElements.add((Comparable<Object>)object);
     }
     return listOfComparableElements;
   }
@@ -217,6 +239,106 @@ public class Lists {
    */
   private boolean areEqual(Object actual, Object other) {
     return comparisonStrategy.areEqual(actual, other);
+  }
+
+  public void assertUnmodifiableList(List<?> actual) {
+    if (Unmodifiables.isBuiltInUnmodifiableCollection(actual))
+      return;
+
+    if (!actual.isEmpty()) {
+      failAtFirstModifyingSuccess(actual);
+    }
+  }
+
+  private static <T> void failAtFirstModifyingSuccess(List<T> list) {
+    T firstElement = list.get(0);
+    try {
+      list.remove(0);
+      throw new AssertionError("Could remove the element: " + firstElement + " from " + list + " using remove(index)");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      list.remove(firstElement);
+      throw new AssertionError("Could remove the element: " + firstElement + " from " + list + " using remove(Object)");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      list.removeAll(Collections.list(firstElement));
+      throw new AssertionError("Could remove the element: " + firstElement + " from " + list + " using removeAll(Collection)");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      Iterator<T> i = list.iterator();
+      i.next();
+      i.remove();
+      throw new AssertionError("Could remove element through iterator().remove() ");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      ListIterator<T> i = list.listIterator();
+      i.next();
+      i.remove();
+      throw new AssertionError("Could remove element through listIterator().remove() ");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      list.listIterator().add(firstElement);
+      throw new AssertionError("Could add element through listIterator().add(Object) ");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      list.add(0, firstElement);
+      throw new AssertionError("Could add the element: " + firstElement + " to " + list + " using add(index, Object)");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      list.add(firstElement);
+      throw new AssertionError("Could add the element: " + firstElement + " to " + list + " using add(Object)");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      list.addAll(Collections.list(firstElement));
+      throw new AssertionError("Could add the element: " + firstElement + " to " + list + " using addAll(Collection)");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      list.addAll(0, Collections.list(firstElement));
+      throw new AssertionError("Could add the element: " + firstElement + " to " + list + " using addAll(index, Collection)");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      list.clear();
+      throw new AssertionError("Could clear the list");
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    try {
+      list.set(0, firstElement);
+      throw new AssertionError("Could set object for index 0 in " + list);
+    } catch (UnsupportedOperationException expectedForUnmodifiableList) {
+    }
+
+    if (firstElement != null) {
+      list.toArray()[0] = null;
+      if (list.get(0) == null)
+        throw new AssertionError("changes to result of toArray writes through to the original list");
+      @SuppressWarnings("unchecked")
+      T[] array = (T[])Array.newInstance(firstElement.getClass(), list.size());
+      array = list.toArray(array);
+      array[0] = null;
+      if (list.get(0) == null)
+        throw new AssertionError("changes to result of toArray(T[]) writes through to the original list");
+    }
   }
 
 }
